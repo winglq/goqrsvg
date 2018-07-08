@@ -3,6 +3,7 @@ package goqrsvg
 
 import (
 	"errors"
+	"fmt"
 	"image/color"
 
 	"github.com/ajstarks/svgo"
@@ -32,8 +33,26 @@ func NewQrSVG(qr barcode.Barcode, blockSize int) QrSVG {
 	}
 }
 
+// Colors
+
+// RGB specifies a fill color in terms of a (r)ed, (g)reen, (b)lue triple.
+// Standard reference: http://www.w3.org/TR/css3-color/
+func (qs QrSVG) RGB(r , g , b uint32) string {
+	//fmt.Println(fmt.Sprintf(`fill:rgb(%d,%d,%d)`, r, g, b))
+	return fmt.Sprintf(`fill:rgb(%d,%d,%d)`, r, g, b)
+}
+
+// RGBA specifies a fill color in terms of a (r)ed, (g)reen, (b)lue triple and opacity.
+func (qs QrSVG) RGBA(r , g , b , a uint32) string {
+	r = r >> 8
+	g = g >> 8
+	b = b >> 8
+	a = a >> 8
+	return fmt.Sprintf(`fill-opacity:%.2f; %s`, float64(a)/255.0, qs.RGB(r, g, b))
+}
+
 // WriteQrSVG writes the QR Code to SVG.
-func (qs *QrSVG) WriteQrSVG(s *svg.SVG) error {
+func (qs *QrSVG) WriteColorQrSVG(s *svg.SVG, foreground, background color.Color) error {
 	if qs.qr.Metadata().CodeKind == "QR Code" {
 		currY := qs.startingY
 
@@ -41,9 +60,9 @@ func (qs *QrSVG) WriteQrSVG(s *svg.SVG) error {
 			currX := qs.startingX
 			for y := 0; y < qs.qrWidth; y++ {
 				if qs.qr.At(x, y) == color.Black {
-					s.Rect(currX, currY, qs.blockSize, qs.blockSize, "fill:black;stroke:none")
+					s.Rect(currX, currY, qs.blockSize, qs.blockSize, fmt.Sprintf("%s;stroke:none", qs.RGBA(foreground.RGBA())))
 				} else if qs.qr.At(x, y) == color.White {
-					s.Rect(currX, currY, qs.blockSize, qs.blockSize, "fill:white;stroke:none")
+					s.Rect(currX, currY, qs.blockSize, qs.blockSize, fmt.Sprintf("%s;stroke:none", qs.RGBA(background.RGBA())))
 				}
 				currX += qs.blockSize
 			}
@@ -52,6 +71,10 @@ func (qs *QrSVG) WriteQrSVG(s *svg.SVG) error {
 		return nil
 	}
 	return errors.New("can not write to SVG: Not a QR code")
+}
+
+func (qs *QrSVG) WriteQrSVG(s *svg.SVG) error {
+	return qs.WriteColorQrSVG(s, color.Black, color.White)
 }
 
 // SetStartPoint sets the top left start point of QR Code.
