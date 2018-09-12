@@ -95,3 +95,7 @@ func (qs *QrSVG) StartQrSVG(s *svg.SVG) {
 	qs.SetStartPoint(0, 0)
 	s.Start(width, width)
 }
+
+func (qs QrSVG) GetWidth() int {
+	return (qs.qrWidth * qs.blockSize) + (qs.blockSize * 8)
+}
